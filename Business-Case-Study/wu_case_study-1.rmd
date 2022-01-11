@@ -1,0 +1,62 @@
+# Case Study Question 4
+# Arthur Wu
+# INST354
+
+# Load data
+```{r}
+employees <- read.csv('EmployeeAttrition.csv', header = TRUE)
+head(employees)
+```
+
+# employees dataframe structure.
+
+```{r, results='hide'}
+str(employees)
+```
+
+## Correlation Tests
+
+# Tenure & age
+
+```{r}
+cor.test(employees$YearsAtCompany, employees$ï..Age)
+```
+# Tenure & EnvironmentSatisfaction 
+
+```{r}
+cor.test(employees$YearsAtCompany, employees$EnvironmentSatisfaction)
+```
+
+# Tenure & JobSatisfaction         
+
+```{r}
+cor.test(employees$YearsAtCompany, employees$JobSatisfaction)
+```
+
+# Tenure & JobInvolvement
+
+```{r}
+cor.test(employees$YearsAtCompany, employees$JobInvolvement)
+```
+
+# Tenure & TotalWorkingYears
+
+```{r}
+cor.test(employees$YearsAtCompany, employees$TotalWorkingYears)
+```
+
+# Establish as Categorical Variables         
+
+```{r}
+employees$EnvironmentSatisfaction <- as.factor(employees$EnvironmentSatisfaction)
+employees$JobSatisfaction <- as.factor(employees$JobSatisfaction)
+employees$JobInvolvement <- as.factor(employees$JobInvolvement)
+```
+
+
+## Regression model
+
+```{r}
+mod1 <- lm(employees$YearsAtCompany ~ employees$ï..Age + employees$EnvironmentSatisfaction + employees$JobSatisfaction + employees$JobInvolvement + employees$TotalWorkingYears)
+summary(mod1)
+```
