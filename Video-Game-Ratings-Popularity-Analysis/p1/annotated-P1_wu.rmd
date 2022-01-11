@@ -1,0 +1,161 @@
+---
+title: "Project 1:Trends of video game ratings and sales success - Arthur Wu"
+output:
+  html_document:
+    df_print: paged
+---
+
+**Loading Packages**
+
+```{r setup}
+#load packages
+library(tidyverse) # includes ggplot2
+
+## the following two are new.  If you have not yet installed these, comment out the installation lines the first time you run the code.
+
+# install.packages("ggpubr")
+library(ggpubr) # containes line/dot plot for visualizing means
+#install.packages("descr")
+library(descr) ## for "pretty" two-way table CrossTable()
+
+#install.packages("knitr")
+library(knitr)
+#install.packages("kableExtra")
+library("kableExtra")
+
+#install.packages("sjPlot")
+library(sjPlot) ## PQ two-way/contingency table
+#install.packages("stargazer")
+library(stargazer) # PQ numerical summary stats
+## installations required to save flextables and ggplot2 objects as imgs
+library(webshot)
+#install.packages("webshot")
+#webshot::install_phantomjs()
+```
+
+*loading .csv file*
+```{r}
+mydata <- read_csv("Video_Games_Sales_as_at_22_Dec_2016.csv")
+glimpse(mydata)
+```
+
+*cleaning: removing all video games where Year_of_Release < 2001, and converting User_Score to numeric*
+```{r}
+mydata$Year_of_Release[mydata$Year_of_Release == "1980"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1981"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1982"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1983"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1984"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1985"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1986"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1987"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1988"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1989"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1990"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1991"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1992"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1993"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1994"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1995"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1996"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1997"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1998"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "1999"] <- NA
+mydata$Year_of_Release[mydata$Year_of_Release == "2000"] <- NA
+
+
+vgdata <- mydata %>% drop_na(Year_of_Release, Critic_Score, User_Score)
+
+vgdata$User_Score <- as.numeric(vgdata$User_Score)
+
+saveRDS(vgdata,"P1_data_wu.rds")
+
+glimpse(vgdata)
+
+
+```
+
+
+
+
+## VARIABLES ##
+
+*Platform Popularity - frequency/percentage table*
+
+```{r, results='asis'}
+plat_table <- vgdata  %>% mutate(Platform = fct_infreq(Platform)) %>% ## using fct_infreq to order levels by frequency for the purposes of the chart
+              group_by(Platform)  %>% 
+              summarize(Frequency = n(),
+                        Percentage = n()/dim(vgdata)[1]*100)
+
+plat_table %>% kable(caption = "Table 1: Frequency Distribution of Video Game Platforms") %>% kable_styling(full_width = F)
+```
+
+*genre - frequency and percentage table*
+```{r}
+genre_table <- vgdata  %>% mutate(Genre = fct_infreq(Genre)) %>% ## using fct_infreq to order levels by frequency for the purposes of the chart
+              group_by(Genre)  %>% 
+              summarize(Frequency = n(),
+                        Percentage = n()/dim(vgdata)[1]*100)
+
+genre_table %>% kable(caption = "Table 2: Frequency Distribution of Video Game Genres") %>% kable_styling(full_width = F)
+
+
+```
+
+*Critic and User scores - summary statistic table stargazer*
+```{r}
+stargazer(as.data.frame(vgdata), 
+          #note you have to specify type html
+          type = "html",
+          #note that the argument is "out" not "file"
+          out = "table3.html",
+          title = "Table 3: Summary Statistics of Numerical Variables", # descriptive overall table title
+          # relabel variable names to descriptive names
+          covariate.labels = c("NA Sales", "EU Sales", "JP Sales", "Other Sales",
+                               "Global Sales", "Critic Score", "Critic Count", "User Score", "User Count"),
+          digits = 2) # round values to two decimal places
+
+  webshot("table3.html", "table3.png")
+```
+
+## Multivariate Analysis ##
+
+*Platform X Critic Score box plot*
+```{r}
+bold.14.text <- element_text(face = "bold", size = 12) ## define a text style
+
+vgdata %>% 
+  mutate(Platform = fct_relevel(Platform, 
+            "GBA", "DS", "3DS", "GC", "Wii", "WiiU", 
+            "PSP", "PSV", "PS", "PS2", "PS3", "PS4",
+            "XB", "X360", "XOne",
+            "PC")) %>%
+            ggplot(aes(y = Critic_Score, x = Platform, fill = Platform)) + 
+                geom_boxplot() +
+                theme(legend.position = "none", text = bold.14.text) +
+                labs(title = "Figure 1: Distribution of Video Game Critic Score based on Platform",
+                    x = "Platform", y = "Critic Score") 
+
+ggsave("fig1_boxplot.jpeg")
+
+```
+
+
+*Platform X Critic Score group bar graph*
+```{r}
+mytable <- table(genre = vgdata$Genre, platform = vgdata$Platform)
+new_df <- as.data.frame(mytable)
+
+bold.14.text <- element_text(face = "bold", size = 10) ## define a text style
+
+ggplot(new_df, aes(fill=genre, y=Freq, x=platform)) + 
+  geom_bar(position="dodge", stat="identity") +
+
+  theme(text = bold.14.text) + ## theme chart with defined text style
+  labs(fill="Genre", x = "Platform", y="Frequency", title="Figure 2: Frequency of Video Games per Genre by Platform")
+
+ggsave("fig2_groupbar.jpeg")
+```
+
+

@@ -1,0 +1,305 @@
+---
+title: "Project 3:Does Xbox 360 and PS3 platform and genre influence video game critic score? - Arthur Wu"
+output:
+  html_document:
+    df_print: paged
+---
+
+**Loading Packages**
+
+```{r setup}
+#load packages
+library(tidyverse) # includes ggplot2
+#install.packages("magrittr")
+library(magrittr)
+## the following two are new.  If you have not yet installed these, comment out the installation lines the first time you run the code.
+
+#install.packages("DescTools")
+library(DescTools) ## for phi and cramer's v functions
+#install.packages("pwr")
+library(pwr) ## for power function
+
+# install.packages("ggpubr")
+library(ggpubr) # containes line/dot plot for visualizing means
+#install.packages("descr")
+library(descr) ## for "pretty" two-way table CrossTable()
+
+#install.packages("knitr")
+library(knitr)
+#install.packages("kableExtra")
+library("kableExtra")
+
+#install.packages("sjPlot")
+library(sjPlot) ## PQ two-way/contingency table
+#install.packages("stargazer")
+library(stargazer) # PQ numerical summary stats
+## installations required to save flextables and ggplot2 objects as imgs
+library(webshot)
+#install.packages("webshot")
+#webshot::install_phantomjs()
+
+# the following two are for the univariate PQ table in the FOURTH item PART A
+if (!requireNamespace("kableExtra", quietly = TRUE)) {  ## CHECKS TO SEE IF PKG IS INSTALLED
+  install.packages("kableExtra") ## INSTALLS IF IT'S NOT ALREADY INSTALLED
+}
+if (!requireNamespace("knitr", quietly = TRUE)) {
+  install.packages("knitr")
+}
+#install.packages("kableExtra")
+library(kableExtra)
+#install.packages("knitr")
+library(knitr)
+#install.packages("flextable")
+library(flextable)
+# if you haven't already, you will need these to save PQ items as images.
+#install.packages("magick")
+webshot::install_phantomjs()
+ 
+library(gridExtra) # for side-by-side plots
+library(gt) #alternative option for PQ format
+```
+
+*loading .csv file*
+```{r}
+mydata <- read_csv("Video_Games_Sales_as_at_22_Dec_2016.csv")
+glimpse(mydata)
+```
+
+*cleaning: removing all video games where Year_of_Release < 2001, and converting User_Score to numeric*
+```{r}
+
+mydata$Critic_Score[mydata$Critic_Score < 30] <- NA
+
+vgdata <- mydata %>% filter(Platform %in% c("PS3", "X360")) %>% filter(Genre %in% c("Action", "Sports", "Shooter", "Racing", "Role-Playing")) %>% drop_na(Critic_Score)
+
+saveRDS(vgdata,"P3_data_wu.rds")
+
+glimpse(vgdata)
+summary(vgdata)
+```
+
+*## VARIABLES ##*
+
+*Numerical outcome variable: Critic Score*
+
+*Categorical Predictor Variables: Genre and Platform (PS3, X360)*
+
+*Two-way Table*
+```{r}
+table(vgdata$Platform, vgdata$Genre)
+```
+
+*Summary Statistics for numerical variable critic score*
+```{r}
+critic_score_summ <- vgdata %>% ## ordering factor by frequency for this table
+    summarize(Variable = "Critic_Score",
+      Frequency = n(), 
+              Min = min(vgdata$Critic_Score), 
+              Max = max(vgdata$Critic_Score), 
+              Mean = format(mean(Critic_Score), digits = 4), 
+              Median = median(Critic_Score), 
+              "Std. Dev." = format(sd(Critic_Score), digits = 4), 
+              "Std. Error" = format((sd(Critic_Score)/ sqrt(n())), digits=4) )
+              ## if I want to have my column name have a space in it it needs to be in quotes 
+critic_score_summ
+
+critic_score_summ %>% kable(caption = "Table 1: Summary Statistics for Video Game Critic Score") %>% kable_styling(full_width = F)
+```
+
+*Univariate tables for variables*
+```{r}
+console_freq <- vgdata %>% group_by(Platform) %>% summarize(freq = n())
+console_df <- vgdata %>% group_by(Platform) %>% summarize(freq = n()) %>% mutate(percentage = format(paste(round(freq / dim(vgdata)[1] * 100, 1), "%")))
+console_df
+
+genre_freq <- vgdata %>% group_by(Genre) %>% summarize(freq = n())
+genre_df <- vgdata %>% group_by(Genre) %>% summarize(freq = n()) %>% mutate(percentage = format(paste(round(freq / dim(vgdata)[1] * 100, 1), "%")))
+genre_df
+
+#make sure the first column name in each of the two dfs is "Category" and not the name of the variable (which is the default)
+
+
+colnames(console_df) <- c("Category", "Frequency", "Percentage")
+colnames(genre_df) <- c("Category", "Frequency", "Percentage")
+
+#educ_df
+#smartdumb_df
+## combine the two dataframes into one combined dataframe using rbind().  Your educ variable should be "stacked" on top of your smartdumb variable.
+
+df_cat <- rbind(console_df, genre_df)
+df_cat
+## create table with kable
+
+tname <- "Table 2: Univariate Summaries for Video Game Platform and Genre"
+titlehead <- c(tname = 3)
+names(titlehead) <- tname
+
+unicat <- df_cat %>% kable(booktabs = T, align = "lcc") %>% 
+    kable_styling(full_width = FALSE) %>% 
+    pack_rows("Platform", 1, 2) %>%  ## pack_rows() takes three arguments. First the descriptive label you want for your first variable, second the first row that contains the first category of that variable and third the last row that contains the last category for that variable
+    pack_rows("Genre", 3, 7) %>% 
+    add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+    row_spec(0, extra_css = "border-bottom: solid;") %>% 
+    row_spec(nrow(df_cat), extra_css = "border-bottom: solid;") %>% 
+    cat(., file = "table_2_wu.html")
+
+unicat
+
+```
+
+**#**
+**#**
+**#**
+**ANOVA TEST**
+**#**
+**#**
+**#**
+
+*visualize distribution of numerical variable grouped by levels of categorical variable.*
+```{r}
+dense_platform <- vgdata %>%
+  ggplot( aes(x=Critic_Score, fill=Platform)) +  ## divide income by 1000 to make the axes tick marks more readable.
+    geom_density(alpha=0.5) +
+    scale_fill_manual(values=c("blue", "green")) +
+    labs(fill= "Platform",
+         y = "Density",
+         x = "Critic Score",
+         title = "Distribution of Critic Score by Platform")
+dense_platform
+
+dense_genre <- vgdata %>%
+  ggplot( aes(x=Critic_Score, fill=Genre)) +  ## divide income by 1000 to make the axes tick marks more readable.
+    geom_density(alpha=0.6) +
+    scale_fill_manual(values=c("blue", "orange", "red", "green", "purple")) +
+    labs(fill= "Genre",
+         y = "Density",
+         x = "Critic Score",
+         title = "Distribution of Critic Score by Genre")
+dense_genre
+
+```
+
+```{r}
+viol1 <- vgdata %>% ggplot(aes(x = Platform, y = Critic_Score, fill = Platform)) + 
+            geom_violin() +
+            geom_boxplot(width=0.1, fill = "white", color = "black", size = 1)+
+            stat_summary(fun = mean, geom = "errorbar", aes(ymax = ..y.., ymin = ..y.., color = "mean"),
+                 width = 0.75, linetype = "solid", size = 2) +
+            scale_color_manual(values = "#39ff14")+
+            labs(fill="Platform",
+                 y = "Critic Score",
+                 x = "",
+                 title = "Figure 1: Distribution of Video Game Critic Score by Platform",
+                 color = "Group Mean") +
+            ylim(0,100)
+viol1
+
+viol2 <- vgdata %>% ggplot(aes(x = Genre, y = Critic_Score, fill = Genre)) + 
+            geom_violin() +
+            geom_boxplot(width=0.1, fill = "white", color = "black", size = 1)+
+            stat_summary(fun = mean, geom = "errorbar", aes(ymax = ..y.., ymin = ..y.., color = "mean"),
+                 width = 0.75, linetype = "solid", size = 2) +
+            scale_color_manual(values = "#39ff14")+
+            labs(fill="Genre",
+                 y = "Critic Score",
+                 x = "",
+                 title = "Figure 2: Distribution of Video Game Critic Score by Genre",
+                 color = "Group Mean") +
+            
+            ylim(0,100)
+viol2
+
+ggsave("fig_1_wu.png", viol1)
+ggsave("fig_2_wu.png", viol2)
+```
+
+
+**Assumptions**
+*1. Dependent variable is numeric - Critic_Score is numeric (0-100)*
+*2. Group sample sizes are approximately equal - Groups by platform are very close in magnitude and groups by genre are not as equal, but are close enough in magnitude to ignore.*
+*3. Independence of observations - each observation is a different video game and is independent from one another*
+*4. No extreme outliers - Some outliers in original dataset, but outliers were removed for this test.*
+```{r}
+#Levene Test
+LeveneTest(Critic_Score ~ Platform, data = vgdata)
+LeveneTest(Critic_Score ~ Genre, data = vgdata)
+LeveneTest(Critic_Score ~ Platform:Genre, data = vgdata) ## interaction groups
+
+```
+
+
+**ANOVA TEST**
+
+```{r}
+#2-way ANOVA
+platform_genre_aov <- aov(Critic_Score ~ Platform*Genre, data = vgdata)
+summary(platform_genre_aov)
+
+#Normality of Residuals QQPlot
+resid_df <- data.frame(resid = platform_genre_aov$residuals) ## the residuals part of the aov results using $residuals
+norm_resid <- resid_df %>% ggplot(aes(sample = resid)) +
+  geom_qq_line(color = "red", size = 1) +
+  geom_qq(color = "black") +
+  labs(title = "Figure 3: Plot of Residuals")
+
+ggsave("fig_3_wu.png", norm_resid)
+
+```
+
+*Post Hoc Pairwise Tests*
+```{r}
+TukeyHSD(platform_genre_aov)
+```
+
+*Effect Size*
+```{r}
+#r-squared
+er_lm <- lm(Critic_Score ~ Platform*Genre, data = vgdata)
+rsq <- summary(er_lm)$r.squared 
+rsq 
+
+#partial eta-squareds
+eta2 <- EtaSq(platform_genre_aov) ## give eta-squared the saved anova output
+eta2 # print the entire eta-squared output
+
+#Cohens F
+cohenf <- sqrt(rsq / (1-rsq))
+cohenf
+
+```
+
+*PQ results table*
+```{r}
+df_aov <- broom::tidy(platform_genre_aov)
+df_aov
+
+#gt
+df_aov %>% 
+  mutate(term = c("Platform", "Genre", "Interaction", "Residuals")) %>% 
+  gt(rowname_col = "term") %>% 
+  ## add a header (table name)
+  tab_header(
+    title = md("**ANOVA Results**: The Impact of Video Game Platform and Genre on Critic Score")) %>%  
+                # wrapping something in two astrisks makes it bold
+  ## format SS and MS to be more readable
+  fmt_number(columns = 3:4) %>%  ##Suffixing scales our SS and MS to Billions (65.65B instead of 65,541,593,327)
+  fmt_number(columns = 5:6, decimals = 3) %>% ## round to 3 decimal places
+  ## supress NA from table output
+  fmt_missing(columns = 5:6, missing_text = "") %>% 
+  cols_label(sumsq = "Sum of Squares", ## add linebreak inside colname by using html() formatting
+             meansq = "Mean Squares",
+             statistic = "F-ratio",
+             p.value = "p-value") %>% 
+  cols_align(align = "center") %>% 
+  ## maybe I'll bold my significant p-values
+  tab_style(style = cell_text(weight = "bold"), ## how I want to style the cells
+            locations = cells_body(columns = vars(p.value), ## which column the cells are in I want to style
+                                   rows = p.value < 0.05)) %>% ## logical indicating which rows to style
+  ## add footer indicating what B means
+    
+                ## even after relabeling columns we can use the varnames
+  gtsave("gt_aov_table.png")
+
+```
+

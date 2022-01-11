@@ -1,0 +1,236 @@
+---
+title: "Project 2:Trends of video game ratings and sales success - Arthur Wu"
+output:
+  html_document:
+    df_print: paged
+---
+
+**Loading Packages**
+
+```{r setup}
+#load packages
+library(tidyverse) # includes ggplot2
+#install.packages("magrittr")
+library(magrittr)
+## the following two are new.  If you have not yet installed these, comment out the installation lines the first time you run the code.
+
+#install.packages("DescTools")
+library(DescTools) ## for phi and cramer's v functions
+#install.packages("pwr")
+library(pwr) ## for power function
+
+# install.packages("ggpubr")
+library(ggpubr) # containes line/dot plot for visualizing means
+#install.packages("descr")
+library(descr) ## for "pretty" two-way table CrossTable()
+
+#install.packages("knitr")
+library(knitr)
+#install.packages("kableExtra")
+library("kableExtra")
+
+#install.packages("sjPlot")
+library(sjPlot) ## PQ two-way/contingency table
+#install.packages("stargazer")
+library(stargazer) # PQ numerical summary stats
+## installations required to save flextables and ggplot2 objects as imgs
+library(webshot)
+#install.packages("webshot")
+#webshot::install_phantomjs()
+
+# the following two are for the univariate PQ table in the FOURTH item PART A
+if (!requireNamespace("kableExtra", quietly = TRUE)) {  ## CHECKS TO SEE IF PKG IS INSTALLED
+  install.packages("kableExtra") ## INSTALLS IF IT'S NOT ALREADY INSTALLED
+}
+if (!requireNamespace("knitr", quietly = TRUE)) {
+  install.packages("knitr")
+}
+#install.packages("kableExtra")
+library(kableExtra)
+#install.packages("knitr")
+library(knitr)
+
+# if you haven't already, you will need these to save PQ items as images.
+ #install.packages("magick")
+ webshot::install_phantomjs()
+ 
+```
+
+*loading .csv file*
+```{r}
+mydata <- read_csv("Video_Games_Sales_as_at_22_Dec_2016.csv")
+glimpse(mydata)
+```
+
+*cleaning: removing all video games where Year_of_Release < 2001, and converting User_Score to numeric*
+```{r}
+
+mydata$Critic_Score[mydata$Critic_Score <20] <- NA
+
+#vgdata <- mydata %>% drop_na(Year_of_Release, Genre, Critic_Score)
+
+vgdata <- mydata %>% filter(Platform == c("Wii", "PS3", "X360")) %>% drop_na(Critic_Score)
+
+#vgdata$User_Score <- as.numeric(vgdata$User_Score)
+
+#saveRDS(vgdata,"P1_data_wu.rds")
+
+glimpse(vgdata)
+
+saveRDS(vgdata,"P2_data_wu.rds")
+
+```
+
+## Factor ##
+```{r}
+#factor Global_Sales
+score_cutoffs <- c(20,40,60,80,Inf)
+vgdata$Critic_Score <- cut(vgdata$Critic_Score, br = score_cutoffs)
+
+# Assign Labels to factor
+score_labels <- c("Generally Unfavorable", "Average", "Generally Favorable", "Universal Acclaim")
+levels(vgdata$Critic_Score) <- score_labels
+
+table(vgdata$Critic_Score)
+#glimpse(vgdata)
+```
+
+
+## VARIABLES ##
+
+*Critic and User scores - univariate summaries of variables*
+```{r}
+score_freq <- vgdata %>% group_by(Critic_Score) %>% summarize(freq = n())
+score_df <- vgdata %>% group_by(Critic_Score) %>% summarize(freq = n()) %>% mutate(percentage = format(paste(round(freq / dim(vgdata)[1] * 100, 1), "%"))) 
+score_df
+
+#genre_freq <- vgdata %>% group_by(Genre) %>% summarize(freq = n())
+#genre_df <- vgdata %>% group_by(Genre) %>% summarize(freq = n()) %>% mutate(percentage = format(paste(round(freq / dim(vgdata)[1] * 100, 1), "%")))
+#genre_df
+
+console_freq <- vgdata %>% group_by(Platform) %>% summarize(freq = n())
+console_df <- vgdata %>% group_by(Platform) %>% summarize(freq = n()) %>% mutate(percentage = format(paste(round(freq / dim(vgdata)[1] * 100, 1), "%")))
+console_df
+
+```
+
+``` {r}
+###################
+
+#make sure the first column name in each of the two dfs is "Category" and not the name of the variable (which is the default)
+
+colnames(score_df) <- c("Category", "Frequency", "Percentage")
+#colnames(genre_df) <- c("Category", "Frequency", "Percentage")
+colnames(console_df) <- c("Category", "Frequency", "Percentage")
+
+#educ_df
+#smartdumb_df
+## combine the two dataframes into one combined dataframe using rbind().  Your educ variable should be "stacked" on top of your smartdumb variable.
+
+df_cat <- rbind(score_df, console_df)
+df_cat
+## create table with kable
+
+tname <- "Table 1: Univariate summaries for video game critic score and platform"
+titlehead <- c(tname = 3)
+names(titlehead) <- tname
+
+unicat <- df_cat %>% kable(booktabs = T, align = "lcc") %>% 
+    kable_styling(full_width = FALSE) %>% 
+    pack_rows("Critic Score", 1, 4) %>%  ## pack_rows() takes three arguments. First the descriptive label you want for your first variable, second the first row that contains the first category of that variable and third the last row that contains the last category for that variable
+    pack_rows("Platform", 5, 7) %>% 
+    add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+    row_spec(0, extra_css = "border-bottom: solid;") %>% 
+    row_spec(nrow(df_cat), extra_css = "border-bottom: solid;") %>% 
+    cat(., file = "table_1_wu.html")
+
+unicat
+## HTML will show below the code block, the rendered image will show in the RStudio Viewer Pane.
+
+```
+
+## Multivariate Analysis ##
+
+*Chi Square Test of Independence*
+```{r}
+# create table object
+score_console_tab <- table(vgdata$Critic_Score, vgdata$Platform)
+score_console_tab
+# run chisq.test on table object
+chisq.test(score_console_tab)
+
+```
+
+*Effect Size*
+```{r}
+#Phi(score_console_tab)
+eff_size <- CramerV(score_console_tab)
+eff_size
+```
+
+*Power*
+```{r}
+samp_size <- sum(score_console_tab) ## add up all of the frequencies in my two-way table
+samp_size
+dof <- 8 ## df from the Chi-square output (also we know df = (2-1)(3-1) = 2)
+
+## calculate the power for the ROI analysis
+pwr.chisq.test(w = eff_size, N = 630, df = dof, sig.level = 0.05, power = NULL)
+```
+
+
+*Critic Score X Genre group bar graph*
+```{r}
+console_v_score <- vgdata %>% group_by(Platform, Critic_Score) %>% summarize(freq = n()) %>%
+            mutate(pct_within_console = freq / sum(freq) * 100)
+
+console_v_score_graph <- console_v_score %>% 
+    # make the plot 
+    ggplot(aes(fill=Critic_Score, y=pct_within_console, x=Platform)) + 
+      geom_bar(position="dodge", stat="identity") +
+      labs(x = "Platform",
+           y = "Percent",
+           fill = "Critic Score",
+           title = "Figure 1: Percentage of Critic Score Frequencies by Platform") +
+      ## optional customizations
+      theme(legend.position="right", panel.grid.major.x = element_blank()) +
+      ylim(0, 65) + 
+      #scale_fill_manual(values=c("#526df4", "#f56161")) +
+      ## add percentage labels at top of bars
+      geom_text(aes(label=paste0(round(pct_within_console, 0),"%")), 
+                vjust=-.3, color="black", position = position_dodge(0.9), size=4)
+
+ggsave("console_v_score_graph.png")
+
+```
+
+
+
+*Two-way Table*
+```{r}
+## ENTER PART B CODE HERE
+tab_xtab(var.row = vgdata$Platform, ## variable that makes up the rows
+         var.col = vgdata$Critic_Score,  ### variable that makes up the columns
+         ### specify descriptive overall table title
+         title = "Table 2: Association between critic score and platform",
+         ## specify variable labels in order of row then column (as a vector of strings)
+         var.labels = c("Platform", "Critic Score"),
+         show.cell.prc = TRUE, ## show percentages in the cells
+         show.row.prc = TRUE,
+         show.summary = TRUE, ## to get chi-square
+         #statistics = "auto",
+         file = "table_2_wu.html"
+         )
+## If you follow the example in the Lab you will end up saving an html file to your working directory.  Nothing will print to RStudio screen.
+```
+
+```{r}
+webshot("table_1_wu.html","table_1_wu.png")
+
+webshot("table_2_wu.html","table_2_wu.png")
+
+```
+
+
+

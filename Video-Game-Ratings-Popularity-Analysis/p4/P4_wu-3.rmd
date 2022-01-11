@@ -1,0 +1,616 @@
+---
+title: "Project 4:Association Between Video Game Sales in North America and Video Game Critic Score, User Score, Platform and Genre. - Arthur Wu"
+output:
+  html_document:
+    df_print: paged
+---
+
+**Loading Packages**
+
+```{r setup}
+#load packages
+library(tidyverse) # includes ggplot2
+#install.packages("magrittr")
+library(magrittr)
+## the following two are new.  If you have not yet installed these, comment out the installation lines the first time you run the code.
+
+#install.packages("DescTools")
+library(DescTools) ## for phi and cramer's v functions
+#install.packages("pwr")
+library(pwr) ## for power function
+
+# install.packages("ggpubr")
+library(ggpubr) # containes line/dot plot for visualizing means
+#install.packages("descr")
+library(descr) ## for "pretty" two-way table CrossTable()
+
+#install.packages("knitr")
+library(knitr)
+#install.packages("kableExtra")
+library("kableExtra")
+
+#install.packages("sjPlot")
+library(sjPlot) ## PQ two-way/contingency table
+#install.packages("stargazer")
+library(stargazer) # PQ numerical summary stats
+## installations required to save flextables and ggplot2 objects as imgs
+library(webshot)
+#install.packages("webshot")
+#webshot::install_phantomjs()
+
+# the following two are for the univariate PQ table in the FOURTH item PART A
+if (!requireNamespace("kableExtra", quietly = TRUE)) {  ## CHECKS TO SEE IF PKG IS INSTALLED
+  install.packages("kableExtra") ## INSTALLS IF IT'S NOT ALREADY INSTALLED
+}
+if (!requireNamespace("knitr", quietly = TRUE)) {
+  install.packages("knitr")
+}
+#install.packages("kableExtra")
+library(kableExtra)
+#install.packages("knitr")
+library(knitr)
+#install.packages("flextable")
+library(flextable)
+# if you haven't already, you will need these to save PQ items as images.
+#install.packages("magick")
+webshot::install_phantomjs()
+
+library(grid)
+library(gridExtra) # for side-by-side plots
+library(gt) #alternative option for PQ format
+
+library(car) 
+library(olsrr)
+
+library(broom) ## for tidy
+library(scales)
+```
+
+*loading .csv file*
+```{r}
+mydata <- read_csv("Video_Games_Sales_as_at_22_Dec_2016.csv")
+glimpse(mydata)
+```
+
+*cleaning: removing all video games where Year_of_Release < 2001, and converting User_Score to numeric*
+```{r}
+
+#removing all critic scores less than 30, filtering platform and genre
+mydata$Critic_Score[mydata$Critic_Score < 30] <- NA
+
+#remove NA sales less than 0.5
+mydata$NA_Sales[mydata$NA_Sales > 0.5] <- NA
+
+
+vgdata <- mydata %>% filter(Platform %in% c("PS3", "X360", "Wii")) %>% filter(Genre %in% c("Action", "Sports", "Shooter", "Racing", "Role-Playing")) %>% drop_na(Critic_Score) %>% drop_na(NA_Sales)
+
+#converting user score to numeric
+vgdata$User_Score <- as.numeric(vgdata$User_Score)
+vgdata <- vgdata %>% drop_na(User_Score)
+
+
+
+
+saveRDS(vgdata,"P4_data_wu.rds")
+
+glimpse(vgdata)
+summary(vgdata)
+```
+
+*## VARIABLES ##*
+
+*Numerical outcome variable: NA_sales*
+
+*Categorical Predictor Variables: Genre, Platform(Xbox360, Wii, PS3), Critic_score, User_score*
+
+*Univariate table categorical*
+```{r}
+console_freq <- vgdata %>% group_by(Platform) %>% summarize(freq = n())
+console_df <- vgdata %>% group_by(Platform) %>% summarize(freq = n()) %>% mutate(percentage = format(paste(round(freq / dim(vgdata)[1] * 100, 1), "%")))
+console_df
+
+genre_freq <- vgdata %>% group_by(Genre) %>% summarize(freq = n())
+genre_df <- vgdata %>% group_by(Genre) %>% summarize(freq = n()) %>% mutate(percentage = format(paste(round(freq / dim(vgdata)[1] * 100, 1), "%")))
+genre_df
+
+#make sure the first column name in each of the two dfs is "Category" and not the name of the variable (which is the default)
+
+
+colnames(console_df) <- c("Category", "Frequency", "Percentage")
+colnames(genre_df) <- c("Category", "Frequency", "Percentage")
+
+#educ_df
+#smartdumb_df
+## combine the two dataframes into one combined dataframe using rbind().  Your educ variable should be "stacked" on top of your smartdumb variable.
+
+df_cat <- rbind(console_df, genre_df)
+df_cat
+## create table with kable
+
+tname <- "Table 2: Univariate Summaries for Video Game Platform and Genre"
+titlehead <- c(tname = 3)
+names(titlehead) <- tname
+
+unicat <- df_cat %>% kable(booktabs = T, align = "lcc") %>% 
+    kable_styling(full_width = FALSE) %>% 
+    pack_rows("Platform", 1, 3) %>%  ## pack_rows() takes three arguments. First the descriptive label you want for your first variable, second the first row that contains the first category of that variable and third the last row that contains the last category for that variable
+    pack_rows("Genre", 4, 8) %>% 
+    add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+    row_spec(0, extra_css = "border-bottom: solid;") %>% 
+    row_spec(nrow(df_cat), extra_css = "border-bottom: solid;") %>% 
+    cat(., file = "table_2_wu.html")
+
+unicat
+
+```
+
+*Summary Statistics for numerical variable critic score*
+```{r}
+critic_score_summ <- vgdata %>% ## ordering factor by frequency for this table
+    summarize(Variable = "Critic_Score",
+      Frequency = n(), 
+              Min = min(vgdata$Critic_Score), 
+              Max = max(vgdata$Critic_Score), 
+              Mean = format(mean(Critic_Score), digits = 4), 
+              Median = median(Critic_Score), 
+              "Std. Dev." = format(sd(Critic_Score), digits = 4), 
+              "Std. Error" = format((sd(Critic_Score)/ sqrt(n())), digits=4))
+critic_score_summ
+
+user_score_summ <- vgdata %>% ## ordering factor by frequency for this table
+    summarize(Variable = "User_Score",
+      Frequency = n(), 
+              Min = min(vgdata$User_Score), 
+              Max = max(vgdata$User_Score), 
+              Mean = format(mean(User_Score), digits = 4), 
+              Median = median(User_Score), 
+              "Std. Dev." = format(sd(User_Score), digits = 4), 
+              "Std. Error" = format((sd(User_Score)/ sqrt(n())), digits=4))
+user_score_summ
+
+NA_sales_summ <- vgdata %>% ## ordering factor by frequency for this table
+    summarize(Variable = "NA_Sales",
+      Frequency = n(), 
+              Min = min(vgdata$NA_Sales), 
+              Max = max(vgdata$NA_Sales), 
+              Mean = format(mean(NA_Sales), digits = 4), 
+              Median = median(NA_Sales), 
+              "Std. Dev." = format(sd(NA_Sales), digits = 4), 
+              "Std. Error" = format((sd(NA_Sales)/ sqrt(n())), digits=4))
+NA_sales_summ
+
+df_cat <- rbind(NA_sales_summ, critic_score_summ, user_score_summ)
+df_cat
+
+
+df_cat %>% kable(caption = "Table 1: Summary Statistics for NA Sales, Critic Score and User Score") %>% kable_styling(full_width = F)
+```
+
+*Visualization relationships*
+```{r}
+
+
+```
+
+**#**
+**#**
+**#**
+**Model Fitting**
+**#**
+**#**
+**#**
+
+*visualize distribution of numerical variable grouped by levels of categorical variable.*
+```{r}
+#CATEGORICAL
+platform_vis <- vgdata %>% ggplot(aes(x = Platform, y = NA_Sales, fill = Platform)) +
+    geom_boxplot() +
+    labs(x = "Platform", y = "NA Sales") +
+    theme(legend.title = element_blank(), ## remove legend title
+          legend.position="bottom", ## move legend 
+          axis.text.x = element_blank(), ## remove x-axis tick text
+          axis.ticks = element_blank(), text = element_text(face = "bold", size = 18))  ## remove x-axis ticks
+platform_vis
+
+genre_vis <- vgdata %>% ggplot(aes(x = Genre, y = NA_Sales, fill = Genre)) +
+    geom_boxplot() +
+    labs(x = "Genre", y = "NA Sales") +
+    theme(legend.title = element_blank(), ## remove legend title
+          legend.position="bottom", ## move legend 
+          axis.text.x = element_blank(), ## remove x-axis tick text
+          axis.ticks = element_blank(), text = element_text(face = "bold", size = 18))  ## remove x-axis ticks
+genre_vis
+
+
+
+#NUMERICAL
+critic_vis <- vgdata %>% ggplot(aes(x=Critic_Score, y=NA_Sales)) + ## indicate df, x and y variables.
+    geom_point() +
+    geom_smooth(method=lm, se=TRUE) + ## method is lm, show CI
+    labs(x = "Critic Score", y = "NA Sales") +
+    theme(text = element_text(face = "bold", size = 18))
+critic_vis
+
+user_vis <- vgdata %>% ggplot(aes(x=User_Score, y=NA_Sales)) + ## indicate df, x and y variables.
+    geom_point() +
+    geom_smooth(method=lm, se=TRUE) + ## method is lm, show CI
+    labs(x = "User Scrore", y = "NA Sales") +
+    theme(text = element_text(face = "bold", size = 18))
+user_vis
+
+#grid.arrange(critic_vis, user_vis, platform_vis, genre_vis, ncol = 2, 
+#             top = textGrob("Possible predictors of Video Game Sales in North America",gp=gpar(fontsize=20))) 
+
+ g <- arrangeGrob(critic_vis, user_vis, platform_vis, genre_vis, ncol = 2, 
+                 top = textGrob("Figure 1: Possible Predictors of Video Game Sales in North America",gp=gpar(fontsize=20))) 
+ ggsave(file="fig1.png", g, scale = 2) #saves g
+
+```
+
+**Simple Linear Regression NA sales ~ critic score**
+```{r}
+# model is fitted using lm function
+# lm(outcome ~ predictor, data = yourdf)
+mod1 <- lm(NA_Sales ~ Critic_Score, data = vgdata)
+
+# use summary on saved model output to see the results
+summary(mod1)
+```
+
+**Model Summary PQ**
+```{r}
+# format the model output as a dataframe using tidy
+tidy_mod1 <- tidy(mod1)
+
+# update the "term" to PQ 
+tidy_mod1$term <- c("Intercept", "Critic_Score")
+# round estimate, std.error, and statistic to 2 or 3 decimal places
+tidy_mod1$estimate <- round(tidy_mod1$estimate, 3)
+tidy_mod1$std.error <- round(tidy_mod1$std.error, 3)
+tidy_mod1$statistic <- round(tidy_mod1$statistic, 2)
+
+# convert p-values to either < 0.001 or actual value if higher than 0.001.
+tidy_mod1 %<>% mutate(p.value = ifelse(p.value < 0.001, #logical
+                                       "< 0.001",  #value if true
+                                       format(p.value, scientific = FALSE, nsmall = 3, digits = 0))) #value if false
+
+# rename columns
+colnames(tidy_mod1) <- c("Predictor", "Estimate", "Std. Error", "t-statistic", "p-value")
+
+tname <- "Model 1: Linear Model between Critic Score and NA Sales"
+titlehead <- c(tname = 5)
+names(titlehead) <- tname
+
+#create footnote with n, r-squared, and F-test
+mod_foot <- paste0("n = ",
+                    nrow(vgdata),
+                    ". r-squared = ",
+                    round(summary(mod1)$adj.r.squared, 2),
+                    ", F(",
+                    summary(mod1)$fstatistic[2], ",", summary(mod1)$fstatistic[3],
+                    ") = ", round(summary(mod1)$fstatistic[1], 2),
+                    ".")
+
+ref_foot <- "Reference level is Critic Score"
+
+#adding fstat pvalue to footer
+pval_foot <- "F-Statistic p-value: < 0.001"
+
+tidy_mod1 %>% kable(booktabs = T, align = "rcccc") %>% 
+                kable_styling(full_width = FALSE) %>% 
+                add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+                row_spec(0, extra_css = "border-bottom: solid;") %>% 
+                row_spec(nrow(tidy_mod1), extra_css = "border-bottom: solid;")  %>% 
+                kableExtra:::footnote(general = c(ref_foot, mod_foot, pval_foot)) %>%
+                save_kable("mod1.png")
+```
+
+**Assumptions**
+```{r}
+ols_test_breusch_pagan(mod1)
+
+# residuals vs fitted
+resfit <- data.frame(resid = mod1$residuals, 
+                     fitted = mod1$fitted.values)
+
+#plot with ggplot
+mod1resfit <- resfit %>% ggplot(aes(x = fitted, y = resid)) +
+            geom_point() +
+            geom_smooth(color = "red", se = FALSE) + 
+            ## do not use method = "lm" - we want to see possible curvilinear relationships
+            ## se = FALSE because we don't need CI around line.
+            labs(x = "Fitted Values",
+                 y = "Residuals",
+                 title = "Model 1:  vs. Fitted") +
+    theme(text = element_text(face = "bold", size = 16))
+mod1resfit
+#ggsave(file="mod1resfit.png", mod1resfit)
+
+
+#qqplot residuals
+mod1qq <- resfit %>% ggplot(aes(sample = resid)) +
+  geom_qq_line(color = "red", size = 1) +
+  geom_qq(color = "black") +
+  labs(title = "Model 1: QQ Plot of Residuals") +
+    theme(text = element_text(face = "bold", size = 16))
+mod1qq
+#ggsave(file="mod1qq.png", mod1qq)
+
+
+# residuals vs leverage
+# use olsrr plot 
+mod1reslevplot <- ols_plot_resid_lev(mod1) +
+    theme(text = element_text(face = "bold", size = 16))
+mod1reslevplot
+
+
+g1 <- arrangeGrob(mod1resfit, mod1qq, mod1reslevplot, ncol = 2,                 
+                 top = textGrob("Figure 2: Model 1 Assumption Check Plots",gp=gpar(fontsize=20))) 
+ggsave(file="Fig2.png", g1, scale = 2) #saves g
+
+```
+
+**Multiple Linear Regression**
+```{r}
+mod2 <- lm(NA_Sales ~ Critic_Score + User_Score + Platform + Genre, data = vgdata)
+summary(mod2)
+
+
+
+
+#PQ model 2 summary
+# format the model output as a dataframe using tidy
+tidy_mod2 <- tidy(mod2)
+
+# update the "term" to PQ 
+tidy_mod2$term <- c("Intercept", "Critic_Score", "User_Score", "Platform_Wii", "Platform_X360", "Genre_Racing", "Genre_Role-Playing", "Genre_Shooter", "Genre_Sports")
+# round estimate, std.error, and statistic to 2 or 3 decimal places
+tidy_mod2$estimate <- round(tidy_mod2$estimate, 3)
+tidy_mod2$std.error <- round(tidy_mod2$std.error, 3)
+tidy_mod2$statistic <- round(tidy_mod2$statistic, 2)
+
+# convert p-values to either < 0.001 or actual value if higher than 0.001.
+tidy_mod2 %<>% mutate(p.value = ifelse(p.value < 0.001, #logical
+                                       "< 0.001",  #value if true
+                                       format(p.value, scientific = FALSE, nsmall = 3, digits = 0))) #value if false
+
+# rename columns
+colnames(tidy_mod2) <- c("Predictor", "Estimate", "Std. Error", "t-statistic", "p-value")
+
+tname <- "Model 2: Characteristics Associated with NA Video Game Sales"
+titlehead <- c(tname = 5)
+names(titlehead) <- tname
+
+#create footnote with n, r-squared, and F-test
+mod_foot <- paste0("n = ",
+                    nrow(vgdata),
+                    ". r-squared = ",
+                    round(summary(mod2)$adj.r.squared, 2),
+                    ", F(",
+                    summary(mod2)$fstatistic[2], ",", summary(mod2)$fstatistic[3],
+                    ") = ", round(summary(mod2)$fstatistic[1], 2),
+                    ".")
+
+ref_foot <- "Reference level is Critic Score"
+
+#adding fstat pvalue to footer
+pval_foot <- "F-Statistic p-value: < 0.001"
+
+tidy_mod2 %>% kable(booktabs = T, align = "rcccc") %>% 
+                kable_styling(full_width = FALSE) %>% 
+                add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+                row_spec(0, extra_css = "border-bottom: solid;") %>% 
+                row_spec(nrow(tidy_mod2), extra_css = "border-bottom: solid;")  %>% 
+                kableExtra:::footnote(general = c(ref_foot, mod_foot, pval_foot)) %>%
+                save_kable("mod2.png")
+
+```
+
+
+A) Interpret the Intercept coefficient - i.e. what does it tell us about `medv` and your IVs.?
+
+For this model, the reference groups for the platform and genre categorical variables default to the PS3 platform and the Action genre. The intercept coefficient is -0.057, This is the mean of NA sales when all of the numerical variables are 0 and all the categorical variables are at their reference level. However, this intercept is not meaningful because NA video game sales cannot be a negative value.
+
+
+The coefficient for critic score is 0.004, which tells us that critic score has an positive relationship with NA sales as shown by the positive sign. It also tells us that as critic score of a video game increases by 1 point, NA sales increases by 0.004 (4,000 copies sold).
+
+The coefficient for user score is -0.003, which tells us that user score has an negative relationship with NA sales as shown by the negative sign. It also tells us that as the user score of a video game increases by 1 point, NA sales decreases by 0.003 (3,000 copies sold).
+
+
+The coefficient for the Wii platform is 0.028, which tells us that compared to the PS3 platform, the Wii platform on average has 28,000 higher NA sales holding all else constant. For the Xbox 360 platform, the coefficient is 0.009, which tells us that on average, the Xbox 360 has 9,000 higher NA sales holding all else constant.
+
+The coefficient for the racing genre is -0.04, which tells us that compared to the action genre, the racing genre has on average 40,000 fewer NA sales holding all else constant. For the role playing genre, the -0.019 coefficient tells us that on average, the role playing genre has 19,000 fewer NA sales when compared to the action genre holding all else constant. For the shooter genre, the 0.005 coefficient tells us that on average, the shooter genre has 5,000 more NA sales when compared to the action genre holding all else constant. Lastly, the 0.009 coefficient for the sports tells us that on average, the sports genre has 9,000 more NA sales when compared to the action genre holding all else constant.
+
+Out of the many reference levels, there are only four reference levels that have p-values less than our alpha value to suggest that they are significant coefficients. These reference levels are the critic score, user score, wii platform and racing genre reference levels. All other references levels have p-values greater than our alpha value which suggests that their coefficients are not significantly different from 0.
+
+
+
+**Assumptions**
+```{r}
+ols_test_breusch_pagan(mod2)
+
+# residuals vs fitted
+resfit <- data.frame(resid = mod2$residuals, 
+                     fitted = mod2$fitted.values)
+
+#plot with ggplot
+mod2resfit <- resfit %>% ggplot(aes(x = fitted, y = resid)) +
+            geom_point() +
+            geom_smooth(color = "red", se = FALSE) + 
+            ## do not use method = "lm" - we want to see possible curvilinear relationships
+            ## se = FALSE because we don't need CI around line.
+            labs(x = "Fitted Values",
+                 y = "Residuals",
+                 title = "Residuals vs. Fitted") +
+    theme(text = element_text(face = "bold", size = 16))
+mod2resfit
+#(file="mod2resfit.png", mod2resfit)
+
+
+#qqplot residuals
+mod2qq <- resfit %>% ggplot(aes(sample = resid)) +
+  geom_qq_line(color = "red", size = 1) +
+  geom_qq(color = "black") +
+  labs(title = "QQ Plot of Residuals") +
+    theme(text = element_text(face = "bold", size = 16))
+mod2qq
+#ggsave(file="mod2qq.png", mod2qq)
+
+
+# residuals vs leverage
+# use olsrr plot 
+mod2reslevplot <- ols_plot_resid_lev(mod2) +
+    theme(text = element_text(face = "bold", size = 16))
+mod2reslevplot
+
+
+g2 <- arrangeGrob(mod2resfit, mod2qq, mod2reslevplot, ncol = 2,                 
+                 top = textGrob("Figure 3: Model 2 Assumption Check Plots",gp=gpar(fontsize=20))) 
+ggsave(file="Fig3.png", g2, scale = 2) #saves g
+
+
+vif(mod2)
+ols_vif_tol(mod2)
+
+```
+
+**Examining the qq plot of residuals, we can see that the distribution of residuals is relatively normal except for slight deviation at the tails. The distribution of residuals looks very similar to the residuals distribution in our first model. I would say that due to how minor and gradual the deviations are, the residuals for model 2 are normally distributed.**
+
+**Looking at the graph of Outlier and Leverage Diagnostics for NA sales, we can see that there is one plot point (9) that is both an outlier and has leverage, making it an influential outlier. We violate the assumption of no influential outliers, but tHis is a large improvement from model 1 where there were multiple influential outliers.**
+
+**Examining the Residuals vs fitted plot for homoscedasticity, there is no funnel shape in the distribution that suggests unequal variance in residuals. The reference line also is relatively horizontal and straight which further supports successfully fulfilling the assumption.**
+
+**Examining the Residuals vs fitted plot for the assumption of independent errors, we can see that the reference line is more horizontal and straight compared to the plot from model 1, but there is still a very slight curve to the reference line which may suggest that the errors are not independent. At the end, I will conclude that the model still violates the assumption of independent errors.**
+
+**Lastly, I will test the assumption of multicollinearity using a VIF test. Examining the results, we can see that all independent variables have VIF values between 1 and 2. This tells us that we are under the threshold (4.0) for VIF and that we are safe from multicollinearity issues. **
+
+
+
+```{r}
+ano1 <- anova(mod1, mod2)
+ano1
+
+```
+
+
+**Multiple Linear Regression pt 2**
+```{r}
+vgdata_refitted <- vgdata[-c(223,1095,914),]
+
+
+mod3 <- lm(NA_Sales ~ Critic_Score + I(Critic_Score^2) + User_Score + Platform + Genre, data = vgdata_refitted)
+summary(mod3)
+
+
+
+
+#PQ model 2 summary
+# format the model output as a dataframe using tidy
+tidy_mod3 <- tidy(mod3)
+
+# update the "term" to PQ 
+tidy_mod3$term <- c("Intercept", "Critic_Score", "Critic_Score_sqr", "User_Score", "Platform_Wii", "Platform_X360", "Genre_Racing", "Genre_Role-Playing", "Genre_Shooter", "Genre_Sports")
+# round estimate, std.error, and statistic to 2 or 3 decimal places
+tidy_mod3$estimate <- round(tidy_mod3$estimate, 3)
+tidy_mod3$std.error <- round(tidy_mod3$std.error, 3)
+tidy_mod3$statistic <- round(tidy_mod3$statistic, 2)
+
+# convert p-values to either < 0.001 or actual value if higher than 0.001.
+tidy_mod3 %<>% mutate(p.value = ifelse(p.value < 0.001, #logical
+                                       "< 0.001",  #value if true
+                                       format(p.value, scientific = FALSE, nsmall = 3, digits = 0))) #value if false
+
+# rename columns
+colnames(tidy_mod3) <- c("Predictor", "Estimate", "Std. Error", "t-statistic", "p-value")
+
+tname <- "Model 3: Characteristics Associated with NA Video Game Sales"
+titlehead <- c(tname = 5)
+names(titlehead) <- tname
+
+#create footnote with n, r-squared, and F-test
+mod_foot <- paste0("n = ",
+                    nrow(vgdata),
+                    ". r-squared = ",
+                    round(summary(mod3)$adj.r.squared, 2),
+                    ", F(",
+                    summary(mod3)$fstatistic[2], ",", summary(mod3)$fstatistic[3],
+                    ") = ", round(summary(mod3)$fstatistic[1], 2),
+                    ".")
+
+ref_foot <- "Reference level is Critic Score"
+
+#adding fstat pvalue to footer
+pval_foot <- "F-Statistic p-value: < 0.001"
+
+tidy_mod3 %>% kable(booktabs = T, align = "rcccc") %>% 
+                kable_styling(full_width = FALSE) %>% 
+                add_header_above(header = titlehead, align = "l",
+                     extra_css = "border-top: solid; border-bottom: double;") %>%
+                row_spec(0, extra_css = "border-bottom: solid;") %>% 
+                row_spec(nrow(tidy_mod3), extra_css = "border-bottom: solid;")  %>% 
+                kableExtra:::footnote(general = c(ref_foot, mod_foot, pval_foot)) %>%
+                save_kable("mod3.png")
+
+
+```
+
+**Assumptions**
+```{r}
+ols_test_breusch_pagan(mod3)
+
+# residuals vs fitted
+resfit <- data.frame(resid = mod3$residuals, 
+                     fitted = mod3$fitted.values)
+
+#plot with ggplot
+mod3resfit <- resfit %>% ggplot(aes(x = fitted, y = resid)) +
+            geom_point() +
+            geom_smooth(color = "red", se = FALSE) + 
+            ## do not use method = "lm" - we want to see possible curvilinear relationships
+            ## se = FALSE because we don't need CI around line.
+            labs(x = "Fitted Values",
+                 y = "Residuals",
+                 title = "Residuals vs. Fitted") +
+    theme(text = element_text(face = "bold", size = 16))
+mod3resfit
+#(file="mod2resfit.png", mod2resfit)
+
+
+#qqplot residuals
+mod3qq <- resfit %>% ggplot(aes(sample = resid)) +
+  geom_qq_line(color = "red", size = 1) +
+  geom_qq(color = "black") +
+  labs(title = "QQ Plot of Residuals") +
+    theme(text = element_text(face = "bold", size = 16))
+mod3qq
+#ggsave(file="mod2qq.png", mod2qq)
+
+
+# residuals vs leverage
+# use olsrr plot 
+mod3reslevplot <- ols_plot_resid_lev(mod3) +
+    theme(text = element_text(face = "bold", size = 16))
+mod3reslevplot
+
+
+g2 <- arrangeGrob(mod3resfit, mod3qq, mod3reslevplot, ncol = 2,                 
+                 top = textGrob("Figure 4: Model 3 Assumption Check Plots",gp=gpar(fontsize=20))) 
+ggsave(file="Fig4.png", g2, scale = 2) #saves g
+
+
+vif(mod3)
+ols_vif_tol(mod3)
+
+```
+
+
+
+```{r}
+mod2_refitted <- lm(NA_Sales ~ Critic_Score + User_Score + Platform + Genre, data = vgdata_refitted)
+
+anova(mod2_refitted, mod3)
+
+```
