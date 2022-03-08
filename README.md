@@ -25,9 +25,10 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
 
 
 - ### Business Case Study ###
+    - Sample business case study to practice LP models and making predictions through analyzing variables.
+    - Developed an LP model to determine how much money they should invest in various employee focused departments, and performed a regression model to examine relationship between tenure and hypothesized variables. 
 
-
-    _Tools: MS Excel_
+    _Tools: MS Excel, R_
 
 
 - ### PG County Vaccine Availability Alert ###
