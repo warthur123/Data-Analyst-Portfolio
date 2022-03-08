@@ -2,7 +2,7 @@
 
 This portfolio consolidates all data-related projects I have completed, with a majority of projects coming from undergraduate Information Science course projects at the University of Maryland, College Park.
 
-Projects range from parsing and web crawling scripts written in Python(Selenium), to multi-level data anlaysis reports using Python and Jupyter Notebook.
+Projects range from parsing and web crawling scripts written in Python(Selenium), to multi-level data anlaysis reports using Python and R.
 
 ## Content
 
