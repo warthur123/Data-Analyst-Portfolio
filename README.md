@@ -17,7 +17,9 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
 
 
 - ### Billboard Top 100 Database ###
-
+    - Developed and populated a Database Schema for all Billboard Hot 100 songs from 1964 to 2020.
+    - Drew and combined data from two datasets from kaggle and data.world by users rakannimer and kcmillersean.
+    - Developed 5 advanced queries and ERD to supplement database.
 
     _Tools: MySQL, MySQL Workbench_
 
