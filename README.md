@@ -7,8 +7,6 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
 ## Content
 
 - ### AZ Song Lyrics Analysis ### 
-    _January 2021_
-    
     - Lyrics analysis on songs scraped from AZLyrics.com. 
     - Scraped song data and lyric urls for all songs with artist names starting with the letter 'W' using Python BeautifulSoup. Then obtained smaller sample data of song lyrics.
     - Cleaned and preprocessed sample data, removing stopwords and stem words. Then analyzed total words, unique words and ratio betwen total and unique, as a function of year, and performed simple linear regression on unique and total word ratio and year. 
@@ -32,7 +30,8 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
 
 
 - ### PG County Vaccine Availability Alert ###
-
+    - Developed a python script using Selenium that scans website for open appointment slots for COVID-19 vaccines. 
+    - Developed for client in the UMD HCIL department.
 
     _Tools: Python (Selenium)_
 
