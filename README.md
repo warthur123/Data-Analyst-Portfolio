@@ -7,7 +7,10 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
 ## Content
 
 - AZ Song Lyrics Analysis
-
+    
+    - Lyrics analysis on songs scraped from AZLyrics.com. 
+    - Scraped song data and lyric urls for all songs with artist names starting with the letter 'W' using Python BeautifulSoup. Then obtained smaller sample data of song lyrics.
+    - Cleaned and preprocessed sample data, removing stopwords and stem words. Then analyzed total words, unique words and ratio betwen total and unique, as a function of year, and performed simple linear regression on unique and total word ratio and year. 
 
     _Tools: Python (Pandas, BeautifulSoup, NumPy, NLTK, SKLearn, PyPlot), Jupyter Notebook_
 
