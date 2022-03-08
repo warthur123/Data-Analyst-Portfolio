@@ -6,7 +6,7 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
 
 ## Content
 
-- ### AZ Song Lyrics Analysis ###
+- ### AZ Song Lyrics Analysis ### _January 2021_
     
     - Lyrics analysis on songs scraped from AZLyrics.com. 
     - Scraped song data and lyric urls for all songs with artist names starting with the letter 'W' using Python BeautifulSoup. Then obtained smaller sample data of song lyrics.
