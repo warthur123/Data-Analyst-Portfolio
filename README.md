@@ -15,31 +15,31 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
     _Tools: Python (Pandas, BeautifulSoup, NumPy, NLTK, SKLearn, PyPlot), Jupyter Notebook_
 
 
-- Billboard Top 100 Database
+- ### Billboard Top 100 Database ###
 
 
     _Tools: MySQL, MySQL Workbench_
 
 
-- Business Case Study
+- ### Business Case Study ###
 
 
     _Tools: MS Excel_
 
 
-- PG County Vaccine Availability Alert
+- ### PG County Vaccine Availability Alert ###
 
 
     _Tools: Python (Selenium)_
 
 
-- Video Game Rating Analysis
+- ### Video Game Rating Analysis ###
 
 
     _Tools: R (tidyverse, ggplot2, knitr, descr, stargazer, sjPlot, webshot, DescTools), RStudio_
 
 
-- Facebook COVID News Analysis
+- ### Facebook COVID News Analysis ###
 
 
     _Tools: Python (Pandas, NumPy, NLTK, SKLearn, gensim, pyLDAvis, spacy, ), Jupyter Notebook_
