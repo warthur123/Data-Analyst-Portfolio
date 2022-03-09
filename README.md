@@ -27,6 +27,13 @@ This portfolio highlights the breadth of knowledge and skills for data learned, 
     - Developed an LP model to determine how much money they should invest in various employee focused departments, and performed a regression model to examine relationship between tenure and hypothesized variables. 
 
     _Tools: MS Excel, R_
+    
+    
+- ### DC Water Impervious Area Data Project ###
+    - Created two new enriched impervious area tables for 2013 and 2019 data by joining DC Open Data datasets with data from DC Water’s internal ArcMap databases.
+    - Generated and delivered a final Power BI dashboard comparing 2013 and 2019 data, supplemented with a dashboard manual and a future actions report.
+
+    _Tools: Power BI, MySQL, ArcMap/ArcGIS, Citrix_
 
 
 - ### PG County Vaccine Availability Alert ###
