@@ -29,7 +29,7 @@ This portfolio highlights the breadth of knowledge and skills for data learned, 
     **_Tools: MS Excel, R_**
     
     
-- ### DC Water Impervious Area Consulting Project ###
+- ### DC Water Impervious Area Consulting Capstone Project ###
     - Created two new enriched impervious area tables for 2013 and 2019 data by joining DC Open Data datasets with data from DC Water’s internal ArcMap databases.
     - Generated and delivered a final Power BI dashboard comparing 2013 and 2019 data, supplemented with a dashboard manual and a future actions report.
 
