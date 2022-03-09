@@ -16,7 +16,7 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
 
 - ### Billboard Top 100 Database ###
     - Developed and populated a Database Schema for all Billboard Hot 100 songs from 1964 to 2020.
-    - Drew and combined data from two datasets from kaggle and data.world by users rakannimer and kcmillersean.
+    - Drew and combined data from two datasets from Kaggle and data.world by users rakannimer and kcmillersean.
     - Developed 5 advanced queries and ERD to supplement database.
 
     _Tools: MySQL, MySQL Workbench_
@@ -37,12 +37,15 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
 
 
 - ### Video Game Rating Analysis ###
-
-
+    - Developed 4 data reports on video game sales and popularity dataset from Kaggle by user Kirubi. All Analysis were performed in R.
+    - Report 1: Performed a multi-variate analysis to determine correlation between video game platform and critic score, and frequency of video games per genre by platform.
+    - Report 2: Analyzed if critic score varied based on platform (Xbox 360. Wii, PS3) by performing a multi-variate analysis using Chi Square Test of Independence, Effict Size and Power, and determined effect size through Cramer's V test.
+    - Report 3: Performed a two-way ANOVA test to examine relationship between platform, genre and critic score, analyzed the pairwise differences between each grouping of main effects in the model using TukeyHSD, and determined the effect size through Cohen's F, R-squared analysis and partial eta-squared analysis.
+    - Report 4: Determined the association between game sales in North America and critic score, user score, platform and genre using linear and multiple regressions modeling.
     _Tools: R (tidyverse, ggplot2, knitr, descr, stargazer, sjPlot, webshot, DescTools), RStudio_
 
 
 - ### Facebook COVID News Analysis ###
-
+    
 
     _Tools: Python (Pandas, NumPy, NLTK, SKLearn, gensim, pyLDAvis, spacy, ), Jupyter Notebook_
