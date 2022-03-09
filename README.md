@@ -1,8 +1,6 @@
 # Data Portfolio
 
-This portfolio consolidates all data-related projects I have completed, with a majority of projects coming from undergraduate Information Science course projects at the University of Maryland, College Park.
-
-Projects range from parsing and web crawling scripts written in Python(Selenium), to multi-level data anlaysis reports using Python and R.
+This portfolio consolidates major data-related projects I have completed, with a majority of projects coming from undergraduate Information Science course projects at the University of Maryland, College Park. This portfolio highlights the breadth of knowledge and skills for data learned, ranging from database queries and schemas to topic analysis in Python. It also reveals the depth of my knowledge of coding in Python, utilizing many different data libraries to perform a variety of analysis.
 
 ## Content
 
