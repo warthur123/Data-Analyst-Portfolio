@@ -19,7 +19,7 @@ This portfolio highlights the breadth of knowledge and skills for data learned, 
     - Drew and combined data from two datasets from Kaggle and data.world by users rakannimer and kcmillersean.
     - Developed 5 advanced queries and ERD to supplement database.
 
-    _Tools: MySQL, MySQL Workbench_
+    *_Tools: MySQL, MySQL Workbench_*
 
 
 - ### Business Case Study ###
