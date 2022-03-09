@@ -37,15 +37,21 @@ Projects range from parsing and web crawling scripts written in Python(Selenium)
 
 
 - ### Video Game Rating Analysis ###
-  Developed 4 data reports on video game sales and popularity dataset from Kaggle by user Kirubi. All Analysis were performed in R.
+  Developed 4 data analysis reports on video game sales and popularity dataset from Kaggle by user Kirubi. All Analysis were performed in R.
     - Report 1: Performed a multi-variate analysis to determine correlation between video game platform and critic score, and frequency of video games per genre by platform.
     - Report 2: Analyzed if critic score varied based on platform (Xbox 360. Wii, PS3) by performing a multi-variate analysis using Chi Square Test of Independence, Effict Size and Power, and determined effect size through Cramer's V test.
     - Report 3: Performed a two-way ANOVA test to examine relationship between platform, genre and critic score, analyzed the pairwise differences between each grouping of main effects in the model using TukeyHSD, and determined the effect size through Cohen's F, R-squared analysis and partial eta-squared analysis.
     - Report 4: Determined the association between game sales in North America and critic score, user score, platform and genre using linear and multiple regressions modeling.
+
+
     _Tools: R (tidyverse, ggplot2, knitr, descr, stargazer, sjPlot, webshot, DescTools), RStudio_
 
 
 - ### Facebook COVID News Analysis ###
-    
+    - Data analysis and report on how different major news organizations cover COVID-19 on Facebook and how they differ in public engagement.
+    - Fetched data from Facebook using [Facepager](https://github.com/strohne/Facepager) and cleaned data in Python.
+    - Performed public engagement analysis through bargraph visualizations and comparing average number of emoji reactions, shares and comments between different news organizations.
+    - Performed Topic Analysis using Gensim's LDA models and pyLDAvis models to determine top key words used by each major news organization.
+    - Performed Time Series Analysis using Pandas to determine how number of posts by news organizations has changed each quarter.
 
     _Tools: Python (Pandas, NumPy, NLTK, SKLearn, gensim, pyLDAvis, spacy, ), Jupyter Notebook_
